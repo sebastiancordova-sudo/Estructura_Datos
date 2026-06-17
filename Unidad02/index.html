@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Operador Ternario</title>
+  <style>
+    body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 40px; }
+    h2 { color: #9cdcfe; font-size: 16px; }
+    p  { font-size: 14px; margin: 8px 0; }
+    span { font-weight: bold; color: #4ec9b0; }
+  </style>
+</head>
+<body>
+  <h2>// Operador Ternario</h2>
+  <p id="resultado"></p>
+
+  <script>
+    const nota = 7
+    const mensaje = nota >= 6 ? "Aprobado" : "Reprobado"
+
+    document.getElementById("resultado").innerHTML =
+      `Nota: ${nota} → <span>${mensaje}</span>`
+  </script>
+</body>
+</html>
