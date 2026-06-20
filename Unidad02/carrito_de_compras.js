@@ -30,11 +30,11 @@ function eliminar(id) {
 }
 
 function comprar() {
-  if (carrito.length === 0) return console.log("⚠️  No hay productos");
+  if (carrito.length === 0) return console.log("  No hay productos");
   console.log("\n Procesando compra...");
   while (carrito.length > 0) {
     const item = carrito.shift(); // FIFO → procesa en orden de llegada
-    console.log(`   ✔ ${item.nombre} - $${item.precio}`);
+    console.log(` ${item.nombre} - $${item.precio}`);
   }
   console.log(" ¡Compra realizada con éxito!\n");
 }
