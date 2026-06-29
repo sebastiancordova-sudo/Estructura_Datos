@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cola Circular — Préstamo de Bicicletas Públicas</title>
+<style>
+  :root{
+    --teal:#0F6E5C;
+    --teal-dark:#0A4F42;
+    --mint:#BFE3D8;
+    --bg:#FAFAF7;
+    --panel:#FFFFFF;
+    --ink:#1C2B28;
+    --gray:#5B6C68;
+    --coral:#C1432A;
+    --line:#E3DECF;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:Calibri, "Segoe UI", Arial, sans-serif;
+    min-height:100vh;
+    padding:32px 24px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  header{margin-bottom:28px;}
+  .eyebrow{
+    font-size:12.5px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--teal);font-weight:700;margin-bottom:6px;
+  }
+  h1{
+    font-family:Cambria, Georgia, serif;
+    font-size:clamp(26px,3.4vw,38px);
+    margin:0 0 8px;color:var(--ink);font-weight:700;
+  }
+  .subtitle{color:var(--gray);font-size:15px;max-width:720px;line-height:1.5;}
+
+  .layout{
+    display:grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap:24px;
+    margin-top:28px;
+  }
+  @media (max-width: 900px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px;
+  }
+  .panel h2{
+    font-family:Cambria, Georgia, serif;
+    font-size:18px;margin:0 0 4px;color:var(--ink);
+  }
+  .panel .desc{color:var(--gray);font-size:13px;margin-bottom:18px;line-height:1.45;}
+
+  /* --- Ring visualization --- */
+  .ring-stage{
+    position:relative;
+    width:100%;
+    aspect-ratio:1/1;
+    max-width:420px;
+    margin:0 auto;
+  }
+  .slot{
+    position:absolute;
+    width:64px;height:64px;
+    border-radius:50%;
+    background:#EFEAE0;
+    border:2px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:600;color:var(--gray);
+    text-align:center;
+    transition:background .35s ease, border-color .35s ease, transform .35s ease, color .35s ease;
+    line-height:1.1;
+    padding:4px;
+  }
+  .slot.filled{
+    background:var(--mint);
+    border-color:var(--teal);
+    color:var(--teal-dark);
+    font-weight:700;
+  }
+  .slot .idx{
+    position:absolute;
+    top:-22px;
+    font-size:10px;
+    color:var(--gray);
+    font-weight:400;
+  }
+  .marker{
+    position:absolute;
+    font-size:11px;font-weight:700;
+    padding:3px 9px;
+    border-radius:20px;
+    color:#fff;
+    white-space:nowrap;
+    transition:top .35s ease, left .35s ease;
+    transform:translate(-50%,-50%);
+    z-index:5;
+  }
+  .marker.frente{background:var(--teal);}
+  .marker.final{background:var(--coral);}
+
+  .center-label{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    text-align:center;
+    color:var(--gray);
+  }
+  .center-label .count{
+    font-family:Cambria, Georgia, serif;
+    font-size:34px;font-weight:700;color:var(--ink);
+    display:block;
+  }
+  .center-label .count-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;}
+
+  /* --- Controls --- */
+  .controls{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+  input[type=text]{
+    flex:1;min-width:140px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:14px;
+    font-family:inherit;
+    background:#FBFAF6;
+  }
+  input[type=text]:focus{outline:2px solid var(--teal);outline-offset:1px;}
+  button{
+    border:none;border-radius:8px;
+    padding:10px 16px;
+    font-size:14px;font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    transition:opacity .15s ease, transform .1s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-primary{background:var(--teal);color:#fff;}
+  .btn-primary:hover:not(:disabled){background:var(--teal-dark);}
+  .btn-secondary{background:var(--ink);color:#fff;}
+  .btn-secondary:hover:not(:disabled){opacity:.85;}
+  kbd{
+    background:rgba(255,255,255,0.25);
+    border-radius:4px;
+    padding:1px 5px;
+    font-size:11px;
+    font-family:Consolas, monospace;
+    margin-left:4px;
+  }
+
+  .status-row{
+    display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;
+  }
+  .status-chip{
+    background:#F3F0E8;
+    border-radius:8px;
+    padding:8px 12px;
+    font-size:12.5px;
+    color:var(--gray);
+    flex:1;
+    min-width:100px;
+  }
+  .status-chip b{color:var(--ink);display:block;font-size:15px;font-family:Cambria,serif;}
+
+  .log{
+    background:var(--teal-dark);
+    color:var(--mint);
+    border-radius:10px;
+    padding:14px 16px;
+    font-size:13px;
+    height:150px;
+    overflow-y:auto;
+    line-height:1.6;
+  }
+  .log .entry{border-bottom:1px solid rgba(255,255,255,0.08);padding:3px 0;}
+  .log .entry:last-child{border-bottom:none;}
+  .log .ok{color:#fff;}
+  .log .err{color:#F6A98F;}
+
+  .queue-list{
+    margin-top:18px;
+  }
+  .queue-list h3{
+    font-size:13px;text-transform:uppercase;letter-spacing:1px;
+    color:var(--gray);margin:0 0 10px;font-weight:700;
+  }
+  .queue-row{
+    display:flex;align-items:center;gap:10px;
+    overflow-x:auto;
+    padding-bottom:6px;
+  }
+  .queue-item{
+    flex:0 0 auto;
+    background:var(--mint);
+    border:1.5px solid var(--teal);
+    color:var(--teal-dark);
+    border-radius:8px;
+    padding:8px 12px;
+    font-size:12.5px;
+    font-weight:700;
+    position:relative;
+    white-space:nowrap;
+  }
+  .queue-item.frente-tag::before{
+    content:"FRENTE";
+    position:absolute;
+    top:-18px;left:0;
+    font-size:9px;
+    color:var(--teal);
+    letter-spacing:0.5px;
+  }
+  .queue-empty{
+    color:var(--gray);font-size:13px;font-style:italic;
+  }
+
+  footer{
+    margin-top:36px;
+    color:var(--gray);
+    font-size:12px;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Estructuras Lineales · Demostración funcional</div>
+    <h1>Cola Circular — Turnos para Préstamo de Bicicletas Públicas</h1>
+    <p class="subtitle">
+      Simulación interactiva de la estructura de datos FIFO sobre un arreglo circular de tamaño fijo.
+      Cada espacio del anillo representa una posición de memoria; los punteros <b>frente</b> y <b>final</b>
+      avanzan con aritmética modular para reciclar el espacio liberado.
+    </p>
+  </header>
+
+  <div class="layout">
+
+    <!-- LEFT: Ring visualization -->
+    <section class="panel">
+      <h2>Memoria circular</h2>
+      <p class="desc">Visualización del arreglo de capacidad fija. Las celdas verdes contienen usuarios en espera.</p>
+      <div class="ring-stage" id="ringStage">
+        <div class="center-label">
+          <span class="count" id="countLabel">0</span>
+          <span class="count-label">en espera</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Controls + log -->
+    <section class="panel">
+      <h2>Panel de la estación</h2>
+      <p class="desc">Encola un nuevo usuario o desencola para liberar una bicicleta a quien lleva más tiempo esperando.</p>
+
+      <div class="controls">
+        <input type="text" id="nombreInput" placeholder="Nombre del usuario (ej. Ana)" maxlength="18">
+        <button class="btn-primary" id="btnEncolar">Encolar <kbd>F1</kbd></button>
+        <button class="btn-secondary" id="btnDesencolar">Desencolar <kbd>F2</kbd></button>
+      </div>
+
+      <div class="status-row">
+        <div class="status-chip">Capacidad<b id="statCap">8</b></div>
+        <div class="status-chip">En espera<b id="statSize">0</b></div>
+        <div class="status-chip">Frente (índice)<b id="statFront">0</b></div>
+        <div class="status-chip">Final (índice)<b id="statRear">0</b></div>
+      </div>
+
+      <div class="queue-list">
+        <h3>Fila de espera (orden FIFO)</h3>
+        <div class="queue-row" id="queueRow">
+          <span class="queue-empty">No hay usuarios en espera.</span>
+        </div>
+      </div>
+
+      <div class="queue-list">
+        <h3>Registro de eventos</h3>
+        <div class="log" id="logBox"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    Proyecto de Estructuras Lineales — Aprendizaje Basado en Problemas (ABP) · Cola Circular implementada sobre arreglos (FIFO)
+  </footer>
+</div>
+
+<!-- Carga el código real de la estructura de datos desde su propio archivo.
+     Este HTML no contiene una copia de la lógica: usa directamente la
+     clase definida en ColaCircular.js (ambos archivos deben estar en la
+     misma carpeta). -->
+<script src="ColaCircular.js"></script>
+<script>
+// La clase ColaCircular ya está disponible aquí gracias al <script src> de arriba.
+
+// Estado de la aplicación 
+const CAPACIDAD = 8;
+const cola = new ColaCircular(CAPACIDAD);
+let contadorUsuarios = 0;
+
+// Referencias DOM 
+const ringStage = document.getElementById("ringStage");
+const countLabel = document.getElementById("countLabel");
+const statSize = document.getElementById("statSize");
+const statFront = document.getElementById("statFront");
+const statRear = document.getElementById("statRear");
+const statCap = document.getElementById("statCap");
+const queueRow = document.getElementById("queueRow");
+const logBox = document.getElementById("logBox");
+const nombreInput = document.getElementById("nombreInput");
+const btnEncolar = document.getElementById("btnEncolar");
+const btnDesencolar = document.getElementById("btnDesencolar");
+
+statCap.textContent = CAPACIDAD;
+
+// ---------- Construcción visual del anillo ----------
+const slotEls = [];
+const stageSize = 420;
+const center = stageSize / 2;
+const radius = 150;
+
+function buildRing() {
+  for (let i = 0; i < CAPACIDAD; i++) {
+    const angle = (Math.PI * 2 * i) / CAPACIDAD - Math.PI / 2;
+    const x = center + radius * Math.cos(angle);
+    const y = center + radius * Math.sin(angle);
+
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    slot.style.left = (x / stageSize * 100) + "%";
+    slot.style.top = (y / stageSize * 100) + "%";
+    slot.style.transform = "translate(-50%,-50%)";
+
+    const idx = document.createElement("span");
+    idx.className = "idx";
+    idx.textContent = i;
+    slot.appendChild(idx);
+
+    ringStage.appendChild(slot);
+    slotEls.push(slot);
+  }
+
+  // Markers for frente / final
+  const frenteMarker = document.createElement("div");
+  frenteMarker.className = "marker frente";
+  frenteMarker.id = "frenteMarker";
+  frenteMarker.textContent = "FRENTE";
+  ringStage.appendChild(frenteMarker);
+
+  const finalMarker = document.createElement("div");
+  finalMarker.className = "marker final";
+  finalMarker.id = "finalMarker";
+  finalMarker.textContent = "FINAL";
+  ringStage.appendChild(finalMarker);
+}
+
+function posForIndex(i, outward) {
+  const angle = (Math.PI * 2 * i) / CAPACIDAD - Math.PI / 2;
+  const r = radius + outward;
+  const x = center + r * Math.cos(angle);
+  const y = center + r * Math.sin(angle);
+  return { left: (x / stageSize * 100) + "%", top: (y / stageSize * 100) + "%" };
+}
+
+//  Render 
+function render(lastEventLabel) {
+  // Slots
+  slotEls.forEach((slot, i) => {
+    const valor = cola.datos[i];
+    if (valor) {
+      slot.classList.add("filled");
+      slot.innerHTML = '<span class="idx">' + i + '</span>' + escapeHTML(valor);
+    } else {
+      slot.classList.remove("filled");
+      slot.innerHTML = '<span class="idx">' + i + '</span>';
+    }
+  });
+
+  // Markers (only show position when queue isn't empty for "frente"; final always shown)
+  const frenteMarker = document.getElementById("frenteMarker");
+  const finalMarker = document.getElementById("finalMarker");
+  const fPos = posForIndex(cola.frente, 48);
+  const rPos = posForIndex(cola.final, -48);
+  frenteMarker.style.left = fPos.left;
+  frenteMarker.style.top = fPos.top;
+  finalMarker.style.left = rPos.left;
+  finalMarker.style.top = rPos.top;
+  frenteMarker.style.opacity = cola.estaVacia() ? "0.35" : "1";
+
+  // Stats
+  countLabel.textContent = cola.tamano();
+  statSize.textContent = cola.tamano() + " / " + CAPACIDAD;
+  statFront.textContent = cola.frente;
+  statRear.textContent = cola.final;
+
+  // Queue list (logical FIFO order, not raw array order)
+  queueRow.innerHTML = "";
+  if (cola.estaVacia()) {
+    queueRow.innerHTML = '<span class="queue-empty">No hay usuarios en espera.</span>';
+  } else {
+    let idx = cola.frente;
+    for (let c = 0; c < cola.cantidad; c++) {
+      const item = document.createElement("div");
+      item.className = "queue-item" + (c === 0 ? " frente-tag" : "");
+      item.textContent = cola.datos[idx];
+      queueRow.appendChild(item);
+      idx = (idx + 1) % CAPACIDAD;
+    }
+  }
+
+  // Buttons state
+  btnEncolar.disabled = cola.estaLlena();
+  btnDesencolar.disabled = cola.estaVacia();
+}
+
+function escapeHTML(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function logEvent(message, type) {
+  const entry = document.createElement("div");
+  entry.className = "entry " + (type || "");
+  const time = new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  entry.textContent = "[" + time + "] " + message;
+  logBox.appendChild(entry);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+// Acciones 
+function accionEncolar() {
+  let nombre = nombreInput.value.trim();
+  if (!nombre) {
+    contadorUsuarios++;
+    nombre = "Usuario " + contadorUsuarios;
+  }
+  const exito = cola.encolar(nombre);
+  if (exito) {
+    logEvent("Encolado: \"" + nombre + "\" ingresó a la fila de espera (posición " + ((cola.final - 1 + CAPACIDAD) % CAPACIDAD) + ").", "ok");
+    nombreInput.value = "";
+  } else {
+    logEvent("Encolado rechazado: la fila de espera está llena (capacidad " + CAPACIDAD + ").", "err");
+  }
+  render();
+}
+
+function accionDesencolar() {
+  const atendido = cola.desencolar();
+  if (atendido !== null) {
+    logEvent("Desencolado: \"" + atendido + "\" fue atendido y retiró una bicicleta.", "ok");
+  } else {
+    logEvent("Desencolado rechazado: la fila de espera está vacía.", "err");
+  }
+  render();
+}
+
+btnEncolar.addEventListener("click", accionEncolar);
+btnDesencolar.addEventListener("click", accionDesencolar);
+nombreInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") accionEncolar();
+});
+
+// Atajos de teclado globales: F1 = encolar, F2 = desencolar
+document.addEventListener("keydown", (e) => {
+  if (e.key === "F1") {
+    e.preventDefault(); // evita que el navegador abra su panel de ayuda
+    accionEncolar();
+  } else if (e.key === "F2") {
+    e.preventDefault();
+    accionDesencolar();
+  }
+});
+
+buildRing();
+render();
+logEvent("Estación inicializada con capacidad para " + CAPACIDAD + " usuarios en espera.");
+</script>
+</body>
+</html>
