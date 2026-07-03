@@ -1,4 +1,4 @@
-import Nodo from "../Nodo.js";
+import Nodo from "./Nodo.js";
 
 class ArbolBusqueda {
     constructor() {

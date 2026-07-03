@@ -1,4 +1,4 @@
-import ArbolBusqueda from "./Tarea_estudiante/ArbolBusqueda.js";
+import ArbolBusqueda from "./ArbolBusqueda.js";
 
 const arbol = new ArbolBusqueda();
 
